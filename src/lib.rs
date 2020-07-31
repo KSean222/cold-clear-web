@@ -23,7 +23,7 @@ pub fn main() {
     utils::set_panic_hook();
     wasm_bindgen_futures::spawn_local(async {
         let resources = Resources::load().await;
-        let mut gui = CCGui::new();
+        let mut gui = CCGui::new().await;
         fn request_animation_frame(func: &Rc<RefCell<Option<Closure<dyn FnMut(f64)>>>>) {
             let func = func.borrow();
             let func = func
@@ -52,37 +52,39 @@ pub fn main() {
             let mut alpha = 0.0;
             let mut paused = false;
             let mut low_framerate = false;
-            move |now| {
-                frametimes[0] = now - prev_time;
-                frametimes.rotate_left(1);
-                prev_time = now;
+            move |now: f64| {
+                // wasm_bindgen_futures::spawn_local(async move {
+                    frametimes[0] = now - prev_time;
+                    frametimes.rotate_left(1);
+                    prev_time = now;
+            
+                    let frametime = frametimes.iter().sum::<f64>() / 10.0;
+                    let frametime = frametime / 1000.0;
+            
+                    let (lockstep_low, lockstep_high) = lockstep_tolerance(UPS);
+            
+                    let high_framerate = frametime < lockstep_low;
+                    low_framerate = frametime > lockstep_high;
         
-                let frametime = frametimes.iter().sum::<f64>() / 10.0;
-                let frametime = frametime / 1000.0;
-        
-                let (lockstep_low, lockstep_high) = lockstep_tolerance(UPS);
-        
-                let high_framerate = frametime < lockstep_low;
-                low_framerate = frametime > lockstep_high;
-    
-                if low_framerate || high_framerate || !LOCKSTEP {
-                    alpha += frametime * UPS;
-                } else {
-                    alpha = 2.0;
-                }
-    
-                let mut updates = 0;
-                while alpha > 1.0 && !paused {
-                    updates += 1;
-                    if updates as f64 > UPS / 12.0 {
-                        alpha = alpha.min(2.0);
+                    if low_framerate || high_framerate || !LOCKSTEP {
+                        alpha += frametime * UPS;
+                    } else {
+                        alpha = 2.0;
                     }
-                    alpha -= 1.0;
-                    gui.update();
-                }
-                
-                gui.render(&resources, frametime);
-                request_animation_frame(&step);
+        
+                    let mut updates: u32 = 0;
+                    while alpha > 1.0 && !paused {
+                        updates += 1;
+                        if updates as f64 > UPS / 12.0 {
+                            alpha = alpha.min(2.0);
+                        }
+                        alpha -= 1.0;
+                        gui.update();//.await;
+                    }
+                    
+                    gui.render(&resources, frametime);
+                    request_animation_frame(&step);
+                // });
             }
         }) as Box<dyn FnMut(f64)>));
         request_animation_frame(&step);

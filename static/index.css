@@ -7,6 +7,8 @@
 
 :root {
     --stats-width: 4;
+    --hold-height: 4;
+    --stats-height: 16.5;
     --board-width: 10;
     --queue-width: 3;
     --container-width: calc(var(--stats-width) + var(--board-width) + var(--queue-width));
@@ -86,11 +88,21 @@ body {
     height: var(--container-true-height);
 }
 
+.player > .board-container > .hold {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: var(--stats-true-width);
+    height: calc(var(--hold-height) / var(--container-height) * 100%);
+    background-color: blue;
+}
+
 .player > .board-container > .stats {
     position: absolute;
     left: 0;
+    bottom: 0;
     width: var(--stats-true-width);
-    height: 100%;
+    height: calc(var(--stats-height) / var(--container-height) * 100%);
     background-color: red;
 }
 
