@@ -23,7 +23,7 @@ pub struct CCGui {
     p1_input: Box<dyn InputSource>,
     p2_input: Box<dyn InputSource>,
     fps_text: web_sys::HtmlElement,
-    elapsed: u32,
+    countdown: u32,
     countdown_text: web_sys::HtmlElement,
     timer_text: web_sys::HtmlElement,
     battle: Battle
@@ -96,13 +96,14 @@ impl CCGui {
             fps_text,
             countdown_text,
             timer_text,
-            elapsed: 0,
+            countdown: START_COUNTDOWN * crate::UPS as u32,
             battle
         }
     }
     pub async fn update(&mut self) {
-        self.elapsed += 1;
-        if self.elapsed / crate::UPS as u32 >= START_COUNTDOWN {
+        if self.countdown > 0 {
+            self.countdown -= 1;
+        } else {
             let update = self.battle.update(self.p1_input.controller(), self.p2_input.controller());
             self.p1_input.update(&self.battle.player_1.board, &update.player_1.events, update.player_1.garbage_queue);
             self.p2_input.update(&self.battle.player_2.board, &update.player_2.events, update.player_2.garbage_queue);
@@ -112,14 +113,13 @@ impl CCGui {
     }
     pub fn render(&self, resources: &Resources, smooth_delta: f64) {
         self.fps_text.set_inner_text(&format!("FPS: {:.0}", 1.0 / smooth_delta));
-        let elapsed_seconds = self.elapsed / crate::UPS as u32;
-        if elapsed_seconds < START_COUNTDOWN {
-            self.countdown_text.set_inner_text(&format!("{}", START_COUNTDOWN - elapsed_seconds));
+        if self.countdown > 0 {
+            self.countdown_text.set_inner_text(&format!("{}", self.countdown / crate::UPS as u32 + 1));
         } else {
             self.countdown_text.set_inner_text("");
         }
-        let timer_seconds = elapsed_seconds.max(START_COUNTDOWN) - START_COUNTDOWN;
-        self.timer_text.set_inner_text(&format!("{}:{:02}", timer_seconds / 60, timer_seconds % 60));
+        let elapsed_seconds = self.battle.time / 60;
+        self.timer_text.set_inner_text(&format!("{}:{:02}", elapsed_seconds / 60, elapsed_seconds % 60));
         self.p1_ui.render(resources, &self.battle.player_1);
         self.p2_ui.render(resources, &self.battle.player_2);
     }
