@@ -46,7 +46,8 @@ features = [
     "DomTokenList",
     "CanvasRenderingContext2d",
     "Performance",
-    "PerformanceTiming"
+    "PerformanceTiming",
+    "CssStyleDeclaration"
 ]
 
 [profile.release]

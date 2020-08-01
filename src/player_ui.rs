@@ -17,6 +17,7 @@ pub struct PlayerUi {
     hold_canvas: web_sys::HtmlCanvasElement,
     hold_context: web_sys::CanvasRenderingContext2d,
     stats: web_sys::Element,
+    garbage_bar: web_sys::HtmlElement,
     board: Board<ColoredRow>,
     state: PlayerState
 }
@@ -77,6 +78,19 @@ impl PlayerUi {
         hold_canvas.set_class_name("hold");
         container.append_child(&hold_canvas).unwrap();
 
+        let garbage_bar_container = document
+            .create_element("div")
+            .unwrap();
+        garbage_bar_container.set_class_name("garbage-bar");
+        container.append_child(&garbage_bar_container).unwrap();
+
+        let garbage_bar: web_sys::HtmlElement = document
+            .create_element("div")
+            .unwrap()
+            .dyn_into()
+            .unwrap();
+        garbage_bar_container.append_child(&garbage_bar).unwrap();
+        
         Self {
             element,
             board_canvas,
@@ -85,6 +99,7 @@ impl PlayerUi {
             queue_context,
             hold_canvas,
             hold_context,
+            garbage_bar,
             stats,
             board: Board::new(),
             state: PlayerState::SpawnDelay
@@ -161,6 +176,10 @@ impl PlayerUi {
             }
             _ => {}
         }
+        self.garbage_bar
+            .style()
+            .set_property("height", &format!("calc({} / {} * 100%)", game.garbage_queue, BOARD_HEIGHT))
+            .unwrap();
     }
     fn draw_piece(&self, resources: &Resources, piece: FallingPiece, is_ghost: bool) {
         for &(x, y) in &piece.cells() {
