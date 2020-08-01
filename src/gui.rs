@@ -34,16 +34,6 @@ impl CCGui {
         let document = utils::document();
         let body = utils::body();
 
-        let p1_ui = PlayerUi::new();
-        let p1_element = p1_ui.element();
-        p1_element.set_id("player-one");
-        body.append_child(p1_element).unwrap();
-        
-        let p2_ui = PlayerUi::new();
-        let p2_element = p2_ui.element();
-        p2_element.set_id("player-two");
-        body.append_child(p2_element).unwrap();
-
         let fps_text: web_sys::HtmlElement = document
             .create_element("div")
             .unwrap()
@@ -52,13 +42,31 @@ impl CCGui {
         fps_text.set_id("fps-text");
         body.append_child(&fps_text).unwrap();
 
+        let p1_ui = PlayerUi::new();
+        let p1_element = p1_ui.element();
+        p1_element.set_id("player-one");
+        body.append_child(p1_element).unwrap();
+
+        let p2_ui = PlayerUi::new();
+        let p2_element = p2_ui.element();
+        p2_element.set_id("player-two");
+        body.append_child(p2_element).unwrap();
+        
+        let middle_text: web_sys::HtmlElement = document
+            .create_element("div")
+            .unwrap()
+            .dyn_into()
+            .unwrap();
+        middle_text.set_id("middle-text");
+        body.append_child(&middle_text).unwrap();
+
         let countdown_text: web_sys::HtmlElement = document
             .create_element("div")
             .unwrap()
             .dyn_into()
             .unwrap();
         countdown_text.set_id("countdown-text");
-        body.append_child(&countdown_text).unwrap();
+        middle_text.append_child(&countdown_text).unwrap();
 
         let timer_text: web_sys::HtmlElement = document
             .create_element("div")
@@ -66,7 +74,7 @@ impl CCGui {
             .dyn_into()
             .unwrap();
         timer_text.set_id("timer-text");
-        body.append_child(&timer_text).unwrap();
+        middle_text.append_child(&timer_text).unwrap();
 
         let battle = Battle::new(
             GameConfig::default(), 
