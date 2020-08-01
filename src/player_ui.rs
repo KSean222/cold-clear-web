@@ -6,6 +6,7 @@ use crate::resources::Resources;
 
 use libtetris::*;
 use battle::{Game, Event};
+use arrayvec::ArrayVec;
 
 pub struct PlayerUi {
     element: web_sys::Element,
@@ -16,7 +17,19 @@ pub struct PlayerUi {
     hold_canvas: web_sys::HtmlCanvasElement,
     hold_context: web_sys::CanvasRenderingContext2d,
     stats: web_sys::Element,
-    current_piece: Option<(FallingPiece, FallingPiece)>,
+    board: Board<ColoredRow>,
+    state: PlayerState
+}
+
+enum PlayerState {
+    Falling(FallingPiece, FallingPiece),
+    SpawnDelay,
+    LineClearDelay {
+        elapsed: u32,
+        lines: ArrayVec<[i32; 4]>,
+        piece: FallingPiece
+    },
+    GameOver
 }
 
 // Defined in terms of cells
@@ -106,19 +119,51 @@ impl PlayerUi {
             hold_canvas,
             hold_context,
             stats,
-            current_piece: None
+            board: Board::new(),
+            state: PlayerState::SpawnDelay
         }
     }
     pub fn element(&self) -> &web_sys::Element {
         &self.element
     }
-    pub fn update(& mut self, game_events: &[Event]) {
+    pub fn update(&mut self, game_events: &[Event]) {
+        match &mut self.state {
+            PlayerState::LineClearDelay { elapsed, .. } => {
+                *elapsed += 1;
+            }
+            _ => {}
+        }
         for event in game_events {
             match event {
-                &Event::PieceFalling(piece, ghost) => {
-                    self.current_piece = Some((piece, ghost));
+                &Event::GameOver => {
+                    self.state = PlayerState::GameOver;
                 }
-                Event::PiecePlaced { .. } => self.current_piece = None,
+                &Event::PieceFalling(piece, ghost) => {
+                    self.state = PlayerState::Falling(piece, ghost);
+                }
+                Event::GarbageAdded(columns) => {
+                    for &column in columns {
+                        self.board.add_garbage(column);
+                    }
+                }
+                Event::PiecePlaced { piece, locked, .. } => {
+                    if locked.cleared_lines.is_empty() {
+                        self.board.lock_piece(*piece);
+                        self.state = PlayerState::SpawnDelay;
+                    } else {
+                        self.state = PlayerState::LineClearDelay {
+                            elapsed: 0,
+                            lines: locked.cleared_lines.clone(),
+                            piece: *piece
+                        };
+                    }
+                },
+                Event::EndOfLineClearDelay => {
+                    if let PlayerState::LineClearDelay { piece, .. } = self.state {
+                        self.board.lock_piece(piece);
+                        self.state = PlayerState::SpawnDelay;
+                    }
+                }
                 _ => {}
             }
         }
@@ -128,14 +173,26 @@ impl PlayerUi {
         set_size_to_css_size(&self.queue_canvas);
         set_size_to_css_size(&self.hold_canvas);
         for y in 0..21 {
-            let row = game.board.get_row(y);
+            let row = self.board.get_row(y);
             for x in 0..10 {
-                self.draw_cell(resources, row.cell_color(x as usize), false, x, y);
+                let mut col = row.cell_color(x as usize);
+                if col != CellColor::Empty {
+                    if let PlayerState::GameOver = self.state {
+                        col = CellColor::Unclearable;
+                    }
+                }
+                self.draw_cell(resources, col, false, x, y);
             }
         }
-        if let Some((piece, ghost)) = self.current_piece {
-            self.draw_piece(resources, ghost, true);
-            self.draw_piece(resources, piece, false);
+        match &self.state {
+            &PlayerState::Falling(piece, ghost) => {
+                self.draw_piece(resources, ghost, true);
+                self.draw_piece(resources, piece, false);
+            }
+            &PlayerState::LineClearDelay { piece, .. } => {
+                self.draw_piece(resources, piece, false);
+            }
+            _ => {}
         }
     }
     fn draw_piece(&self, resources: &Resources, piece: FallingPiece, is_ghost: bool) {
