@@ -65,50 +65,17 @@ impl PlayerUi {
         stats.set_class_name("stats");
         container.append_child(&stats).unwrap();
 
-        let board_canvas: web_sys::HtmlCanvasElement = document
-            .create_element("canvas")
-            .unwrap()
-            .dyn_into()
-            .unwrap();
+        let (board_canvas, board_context) = utils::new_canvas();
         board_canvas.set_class_name("board");
         container.append_child(&board_canvas).unwrap();
 
-        let board_context: web_sys::CanvasRenderingContext2d = board_canvas
-            .get_context("2d")
-            .unwrap()
-            .unwrap()
-            .dyn_into()
-            .unwrap();
-
-        let queue_canvas: web_sys::HtmlCanvasElement = document
-            .create_element("canvas")
-            .unwrap()
-            .dyn_into()
-            .unwrap();
+        let (queue_canvas, queue_context) = utils::new_canvas();
         queue_canvas.set_class_name("queue");
         container.append_child(&queue_canvas).unwrap();
 
-        let queue_context: web_sys::CanvasRenderingContext2d = queue_canvas
-            .get_context("2d")
-            .unwrap()
-            .unwrap()
-            .dyn_into()
-            .unwrap();
-
-        let hold_canvas: web_sys::HtmlCanvasElement = document
-            .create_element("canvas")
-            .unwrap()
-            .dyn_into()
-            .unwrap();
+        let (hold_canvas, hold_context) = utils::new_canvas();
         hold_canvas.set_class_name("hold");
         container.append_child(&hold_canvas).unwrap();
-
-        let hold_context: web_sys::CanvasRenderingContext2d = hold_canvas
-            .get_context("2d")
-            .unwrap()
-            .unwrap()
-            .dyn_into()
-            .unwrap();
 
         Self {
             element,

@@ -1,4 +1,5 @@
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 
 pub fn set_panic_hook() {
     // When the `console_error_panic_hook` feature is enabled, we can call the
@@ -21,4 +22,20 @@ pub fn document() -> web_sys::Document {
 
 pub fn body() -> web_sys::HtmlElement {
     document().body().unwrap()
+}
+
+pub fn new_canvas() -> (web_sys::HtmlCanvasElement, web_sys::CanvasRenderingContext2d) {
+    let canvas: web_sys::HtmlCanvasElement = document()
+        .create_element("canvas")
+        .unwrap()
+        .dyn_into()
+        .unwrap();
+
+    let context = canvas
+        .get_context("2d")
+        .unwrap()
+        .unwrap()
+        .dyn_into()
+        .unwrap();
+    (canvas, context)
 }
