@@ -100,7 +100,7 @@ impl CCGui {
             battle
         }
     }
-    pub fn update(&mut self) {
+    pub async fn update(&mut self) {
         self.elapsed += 1;
         if self.elapsed / crate::UPS as u32 >= START_COUNTDOWN {
             let update = self.battle.update(self.p1_input.controller(), self.p2_input.controller());

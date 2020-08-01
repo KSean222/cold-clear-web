@@ -22,8 +22,3 @@ pub fn document() -> web_sys::Document {
 pub fn body() -> web_sys::HtmlElement {
     document().body().unwrap()
 }
-
-#[wasm_bindgen]
-extern "C" {
-    pub fn gameloop(update: &Closure<dyn FnMut() -> JsValue>, render: &Closure<dyn FnMut() -> JsValue>);
-}
