@@ -88,8 +88,17 @@ impl PlayerUi {
         container.append_child(&board_canvas).unwrap();
 
         let (queue_canvas, queue_context) = utils::new_canvas();
-        queue_canvas.set_class_name("queue");
+        queue_canvas.set_class_name("queue-box");
         container.append_child(&queue_canvas).unwrap();
+        
+        let queue_text: web_sys::HtmlElement = document
+            .create_element("div")
+            .unwrap()
+            .dyn_into()
+            .unwrap();
+        queue_text.set_class_name("queue-box queue-text");
+        queue_text.set_inner_text("Queue");
+        container.append_child(&queue_text).unwrap();
 
         let (hold_canvas, hold_context) = utils::new_canvas();
         hold_canvas.set_class_name("hold-box");
@@ -217,9 +226,7 @@ impl PlayerUi {
                             self.last_combo = Some((combo, self.time));
                         }
                     }
-                }
-                &Event::PieceHeld(held) => {
-                    self.board.hold_piece = Some(held);
+                    self.board.advance_queue();
                 }
                 Event::EndOfLineClearDelay => {
                     if let PlayerState::LineClearDelay { piece, .. } = self.state {
@@ -235,6 +242,7 @@ impl PlayerUi {
         set_size_to_css_size(&self.board_canvas);
         set_size_to_css_size(&self.queue_canvas);
         set_size_to_css_size(&self.hold_canvas);
+        let cell_size = (resources.skin.height() / 2) as f64;
         for y in 0..21 {
             let row = self.board.get_row(y);
             for x in 0..10 {
@@ -258,19 +266,34 @@ impl PlayerUi {
             _ => {}
         }
         self.hold_context.clear_rect(0.0, 0.0, self.hold_canvas.width() as f64, self.hold_canvas.height() as f64);
-        if let Some(piece) = self.board.hold_piece {
-            let cell_size = (resources.skin.height() / 2) as f64;
+        if let Some(piece) = game.board.hold_piece {
             let piece_canvas = &resources.pieces[piece];
             const PIECE_SCALE: f64 = 0.8;
-            let scale_x = self.hold_canvas.width() as f64 / HOLD_WIDTH / cell_size;
-            let scale_y = self.hold_canvas.height() as f64 / HOLD_HEIGHT / cell_size;
-            let width = piece_canvas.width() as f64 * PIECE_SCALE * scale_x;
-            let height = piece_canvas.height() as f64 * PIECE_SCALE * scale_y;
+            let scale = self.hold_canvas.width() as f64 / HOLD_WIDTH / cell_size;
+            let width = piece_canvas.width() as f64 * PIECE_SCALE * scale;
+            let height = piece_canvas.height() as f64 * PIECE_SCALE * scale;
             self.hold_context
                 .draw_image_with_html_canvas_element_and_dw_and_dh(
                     piece_canvas,
                     (self.hold_canvas.width() as f64 - width) / 2.0,
                     (self.hold_canvas.height() as f64 - height) / 2.0,
+                    width,
+                    height
+                )
+                .unwrap();
+        }
+        self.queue_context.clear_rect(0.0, 0.0, self.queue_canvas.width() as f64, self.hold_canvas.height() as f64);
+        let queue_scale = self.queue_canvas.width() as f64 / HOLD_WIDTH / cell_size;
+        for (i, piece) in game.board.next_queue().enumerate() {
+            let piece_canvas = &resources.pieces[piece];
+            const PIECE_SCALE: f64 = 0.8;
+            let width = piece_canvas.width() as f64 * PIECE_SCALE * queue_scale;
+            let height = piece_canvas.height() as f64 * PIECE_SCALE * queue_scale;
+            self.queue_context
+                .draw_image_with_html_canvas_element_and_dw_and_dh(
+                    piece_canvas,
+                    (self.queue_canvas.width() as f64 - width) / 2.0,
+                    (self.queue_canvas.width() as f64 - height) / 2.0 + i as f64 * self.queue_canvas.width() as f64 * 0.8,
                     width,
                     height
                 )
@@ -327,5 +350,3 @@ impl PlayerUi {
             .unwrap();
     }
 }
-
-
