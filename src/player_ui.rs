@@ -50,6 +50,8 @@ enum PlayerState {
 }
 
 // Defined in terms of cells
+const HOLD_WIDTH: f64 = 4.0;
+const HOLD_HEIGHT: f64 = 4.0;
 const STATS_WIDTH: f64 = 4.0;
 const BOARD_WIDTH: f64 = 10.0;
 const QUEUE_WIDTH: f64 = 3.0;
@@ -91,8 +93,17 @@ impl PlayerUi {
         container.append_child(&queue_canvas).unwrap();
 
         let (hold_canvas, hold_context) = utils::new_canvas();
-        hold_canvas.set_class_name("hold");
+        hold_canvas.set_class_name("hold-box");
         container.append_child(&hold_canvas).unwrap();
+
+        let hold_text: web_sys::HtmlElement = document
+            .create_element("div")
+            .unwrap()
+            .dyn_into()
+            .unwrap();
+        hold_text.set_class_name("hold-box hold-text");
+        hold_text.set_inner_text("Hold");
+        container.append_child(&hold_text).unwrap();
 
         let garbage_bar_container = document
             .create_element("div")
@@ -207,7 +218,10 @@ impl PlayerUi {
                             self.last_combo = Some((combo, self.time));
                         }
                     }
-                },
+                }
+                &Event::PieceHeld(held) => {
+                    self.board.hold_piece = Some(held);
+                }
                 Event::EndOfLineClearDelay => {
                     if let PlayerState::LineClearDelay { piece, .. } = self.state {
                         self.board.lock_piece(piece);
@@ -244,6 +258,25 @@ impl PlayerUi {
             }
             _ => {}
         }
+        self.hold_context.clear_rect(0.0, 0.0, self.hold_canvas.width() as f64, self.hold_canvas.height() as f64);
+        if let Some(piece) = self.board.hold_piece {
+            let cell_size = (resources.skin.height() / 2) as f64;
+            let piece_canvas = &resources.pieces[piece];
+            const PIECE_SCALE: f64 = 0.8;
+            let scale_x = self.hold_canvas.width() as f64 / HOLD_WIDTH / cell_size;
+            let scale_y = self.hold_canvas.height() as f64 / HOLD_HEIGHT / cell_size;
+            let width = piece_canvas.width() as f64 * PIECE_SCALE * scale_x;
+            let height = piece_canvas.height() as f64 * PIECE_SCALE * scale_y;
+            self.hold_context
+                .draw_image_with_html_canvas_element_and_dw_and_dh(
+                    piece_canvas,
+                    (self.hold_canvas.width() as f64 - width) / 2.0,
+                    (self.hold_canvas.height() as f64 - height) / 2.0,
+                    width,
+                    height
+                )
+                .unwrap();
+        }
         self.garbage_bar
             .style()
             .set_property("height", &format!("calc({} / {} * 100%)", game.garbage_queue, BOARD_HEIGHT))
@@ -279,19 +312,7 @@ impl PlayerUi {
     fn draw_cell(&self, resources: &Resources, cell: CellColor, is_ghost: bool, x: i32, y: i32) {
         let src_cell_size = (resources.skin.height() / 2) as f64;
         let dest_cell_size = self.board_canvas.height() as f64 / BOARD_HEIGHT;
-        let cell_x = match cell {
-            CellColor::Unclearable => 1,
-            CellColor::Garbage => 2,
-            CellColor::Z => 3,
-            CellColor::L => 4,
-            CellColor::O => 5,
-            CellColor::S => 6,
-            CellColor::I => 7,
-            CellColor::J => 8,
-            CellColor::T => 9,
-            _ => 0
-        };
-        let cell_y = if is_ghost { 1 } else { 0 };
+        let (cell_x, cell_y) = Resources::cell_pos(cell, is_ghost);
         self.board_context
             .draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
                 &resources.skin,
