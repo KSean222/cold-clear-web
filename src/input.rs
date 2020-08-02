@@ -11,7 +11,7 @@ use webutil::event::EventTargetExt;
 pub trait InputSource {
     fn controller(&self) -> Controller;
     fn update(
-        &mut self, board: &Board<ColoredRow>, events: &[Event], incoming: u32
+        &mut self, _board: &Board<ColoredRow>, _events: &[Event], _incoming: u32
     ) -> Option<cold_clear::Info> {
         None
     }
@@ -30,8 +30,8 @@ pub struct InputConfig<T: Clone> {
 
 pub struct KeyboardInput {
     pub config: InputConfig<String>,
-    keyup_listener: webutil::event::ListenerHandle,
-    keydown_listener: webutil::event::ListenerHandle,
+    _keyup_listener: webutil::event::ListenerHandle,
+    _keydown_listener: webutil::event::ListenerHandle,
     keys: Rc<RefCell<HashSet<String>>>
 }
 
@@ -41,14 +41,14 @@ impl KeyboardInput {
         let keys = Rc::new(RefCell::new(HashSet::new()));
         Self {
             config,
-            keydown_listener: window.add_event_listener({
+            _keydown_listener: window.add_event_listener({
                 let keys = Rc::clone(&keys);
                 move |event: webutil::event::KeyDown| {
                     let mut keys = keys.borrow_mut();
                     keys.insert(event.code());
                 }
             }),
-            keyup_listener: window.add_event_listener({
+            _keyup_listener: window.add_event_listener({
                 let keys = Rc::clone(&keys);
                 move |event: webutil::event::KeyUp| {
                     let mut keys = keys.borrow_mut();

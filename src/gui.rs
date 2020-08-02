@@ -6,7 +6,6 @@ use crate::resources::Resources;
 use crate::input::*;
 
 use battle::{Battle, GameConfig};
-use libtetris::*;
 
 const START_COUNTDOWN: u32 = 3;
 fn random_seed() -> [u8; 16] {

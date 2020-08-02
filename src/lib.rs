@@ -1,8 +1,4 @@
-use std::rc::Rc;
-use std::cell::RefCell;
-
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
 
 mod utils;
 mod gui;
@@ -30,7 +26,6 @@ pub fn main() {
         let mut prev_time = utils::window().performance().unwrap().now();
         let mut frametimes = [1000.0 / 60.0; 10];
         let mut alpha = 0.0;
-        let mut low_framerate = false;
         loop {
             let now = webutil::global::animation_frame().await;
             frametimes[0] = now - prev_time;
@@ -43,7 +38,7 @@ pub fn main() {
             let (lockstep_low, lockstep_high) = lockstep_tolerance(UPS);
     
             let high_framerate = frametime < lockstep_low;
-            low_framerate = frametime > lockstep_high;
+            let low_framerate = frametime > lockstep_high;
 
             if low_framerate || high_framerate || !LOCKSTEP {
                 alpha += frametime * UPS;

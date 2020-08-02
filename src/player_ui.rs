@@ -1,4 +1,3 @@
-use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use webutil::event::EventTargetExt;
 
