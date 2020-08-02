@@ -1,8 +1,10 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use webutil::event::EventTargetExt;
 
 use crate::utils;
 use crate::resources::Resources;
+use crate::audio_ended_event;
 
 use libtetris::*;
 use battle::{Game, Event};
@@ -28,6 +30,7 @@ pub struct PlayerUi {
     garbage_bar: web_sys::HtmlElement,
     attack_type_text: web_sys::HtmlElement,
     combo_text: web_sys::HtmlElement,
+    move_sfx_finished: Option<webutil::event::EventOnce<audio_ended_event::Ended>>,
     board: Board<ColoredRow>,
     state: PlayerState,
     last_attack_type: Option<(LockResult, u32)>,
@@ -132,6 +135,7 @@ impl PlayerUi {
             attack_type_text,
             combo_text,
             stats,
+            move_sfx_finished: None,
             board: Board::new(),
             state: PlayerState::SpawnDelay,
             last_attack_type: None,
@@ -142,7 +146,7 @@ impl PlayerUi {
     pub fn element(&self) -> &web_sys::Element {
         &self.element
     }
-    pub fn update(&mut self, game_events: &[Event]) {
+    pub fn update(&mut self, resources: &Resources, game_events: &[Event]) {
         self.time += 1;
         match &mut self.state {
             PlayerState::LineClearDelay { elapsed, .. } => {
@@ -152,6 +156,21 @@ impl PlayerUi {
         }
         for event in game_events {
             match event {
+                Event::PieceMoved | Event::SoftDropped | Event::PieceRotated => {
+                    let can_play = if let Some(event) = &self.move_sfx_finished {
+                        event.try_next().is_some()
+                    } else {
+                        true
+                    };
+                    if can_play {
+                        let event = utils::play_sound(&resources.audio_context, &resources.move_sfx)
+                                .unwrap()
+                                .dyn_into::<web_sys::EventTarget>()
+                                .unwrap()
+                                .once::<audio_ended_event::Ended>();
+                        self.move_sfx_finished = Some(event);
+                    }
+                }
                 &Event::GameOver => {
                     self.state = PlayerState::GameOver;
                 }
@@ -163,7 +182,13 @@ impl PlayerUi {
                         self.board.add_garbage(column);
                     }
                 }
-                Event::PiecePlaced { piece, locked, .. } => {
+                Event::PiecePlaced { piece, locked, hard_drop_distance } => {
+                    if hard_drop_distance.is_some() {
+                        utils::play_sound(&resources.audio_context, &resources.hard_drop_sfx).unwrap();
+                    }
+                    if locked.placement_kind.is_clear() {
+                        utils::play_sound(&resources.audio_context, &resources.line_clear_sfx).unwrap();
+                    }
                     if locked.cleared_lines.is_empty() {
                         self.board.lock_piece(*piece);
                         self.state = PlayerState::SpawnDelay;

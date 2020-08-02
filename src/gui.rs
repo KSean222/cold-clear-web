@@ -108,15 +108,15 @@ impl CCGui {
             battle
         }
     }
-    pub async fn update(&mut self) {
+    pub async fn update(&mut self, resources: &Resources) {
         if self.countdown > 0 {
             self.countdown -= 1;
         } else {
             let update = self.battle.update(self.p1_input.controller(), self.p2_input.controller());
             self.p1_input.update(&self.battle.player_1.board, &update.player_1.events, update.player_1.garbage_queue);
             self.p2_input.update(&self.battle.player_2.board, &update.player_2.events, update.player_2.garbage_queue);
-            self.p1_ui.update(&update.player_1.events);
-            self.p2_ui.update(&update.player_2.events);
+            self.p1_ui.update(resources, &update.player_1.events);
+            self.p2_ui.update(resources, &update.player_2.events);
         }
     }
     pub fn render(&self, resources: &Resources, smooth_delta: f64) {

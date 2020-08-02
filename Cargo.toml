@@ -43,11 +43,17 @@ features = [
     "Node",
     "HtmlCanvasElement",
     "HtmlImageElement",
+    "AudioContext",
+    "AudioBuffer",
+    "AudioBufferSourceNode",
+    "AudioDestinationNode",
+    "TimeRanges",
     "DomTokenList",
     "CanvasRenderingContext2d",
     "Performance",
     "PerformanceTiming",
-    "CssStyleDeclaration"
+    "CssStyleDeclaration",
+    "Response"
 ]
 
 [profile.release]

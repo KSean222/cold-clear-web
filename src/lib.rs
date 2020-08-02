@@ -11,6 +11,7 @@ mod input;
 mod player_ui;
 mod resources;
 use resources::Resources;
+mod audio_ended_event;
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
@@ -23,7 +24,7 @@ const LOCKSTEP: bool = true;
 pub fn main() {
     utils::set_panic_hook();
     wasm_bindgen_futures::spawn_local(async {
-        let resources = Resources::load().await;
+        let resources = Resources::load().await.unwrap();
         let mut gui = CCGui::new().await;
 
         let mut prev_time = utils::window().performance().unwrap().now();
@@ -57,7 +58,7 @@ pub fn main() {
                     alpha = alpha.min(2.0);
                 }
                 alpha -= 1.0;
-                gui.update().await;
+                gui.update(&resources).await;
             }
             
             gui.render(&resources, frametime);
