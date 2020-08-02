@@ -8,6 +8,14 @@ use libtetris::*;
 use battle::{Game, Event};
 use arrayvec::ArrayVec;
 
+const ATTACK_TYPE_TEXT_TIME: f64 = 1.0;
+const ATTACK_TYPE_TEXT_FADE: f64 = 0.25;
+
+fn opacity(then: u32, now: u32) -> f64 {
+    let fade = (now - then).saturating_sub((ATTACK_TYPE_TEXT_TIME * crate::UPS) as u32);
+    1.0 - (fade as f64 / ATTACK_TYPE_TEXT_FADE / crate::UPS).min(1.0)
+}
+
 pub struct PlayerUi {
     element: web_sys::Element,
     board_canvas: web_sys::HtmlCanvasElement,
@@ -18,8 +26,13 @@ pub struct PlayerUi {
     hold_context: web_sys::CanvasRenderingContext2d,
     stats: web_sys::Element,
     garbage_bar: web_sys::HtmlElement,
+    attack_type_text: web_sys::HtmlElement,
+    combo_text: web_sys::HtmlElement,
     board: Board<ColoredRow>,
-    state: PlayerState
+    state: PlayerState,
+    last_attack_type: Option<(LockResult, u32)>,
+    last_combo: Option<(u32, u32)>,
+    time: u32
 }
 
 enum PlayerState {
@@ -90,6 +103,22 @@ impl PlayerUi {
             .dyn_into()
             .unwrap();
         garbage_bar_container.append_child(&garbage_bar).unwrap();
+
+        let attack_type_text: web_sys::HtmlElement = document
+            .create_element("div")
+            .unwrap()
+            .dyn_into()
+            .unwrap();
+        attack_type_text.set_class_name("attack-text attack-type-text");
+        container.append_child(&attack_type_text).unwrap();
+
+        let combo_text: web_sys::HtmlElement = document
+            .create_element("div")
+            .unwrap()
+            .dyn_into()
+            .unwrap();
+        combo_text.set_class_name("attack-text combo-text");
+        container.append_child(&combo_text).unwrap();
         
         Self {
             element,
@@ -100,15 +129,21 @@ impl PlayerUi {
             hold_canvas,
             hold_context,
             garbage_bar,
+            attack_type_text,
+            combo_text,
             stats,
             board: Board::new(),
-            state: PlayerState::SpawnDelay
+            state: PlayerState::SpawnDelay,
+            last_attack_type: None,
+            last_combo: None,
+            time: 0
         }
     }
     pub fn element(&self) -> &web_sys::Element {
         &self.element
     }
     pub fn update(&mut self, game_events: &[Event]) {
+        self.time += 1;
         match &mut self.state {
             PlayerState::LineClearDelay { elapsed, .. } => {
                 *elapsed += 1;
@@ -138,6 +173,14 @@ impl PlayerUi {
                             lines: locked.cleared_lines.clone(),
                             piece: *piece
                         };
+                    }
+                    if locked.placement_kind.is_hard() || locked.perfect_clear {
+                        self.last_attack_type = Some((locked.clone(), self.time));
+                    }
+                    if let Some(combo) = locked.combo {
+                        if combo > 0 {
+                            self.last_combo = Some((combo, self.time));
+                        }
                     }
                 },
                 Event::EndOfLineClearDelay => {
@@ -180,6 +223,28 @@ impl PlayerUi {
             .style()
             .set_property("height", &format!("calc({} / {} * 100%)", game.garbage_queue, BOARD_HEIGHT))
             .unwrap();
+        
+        
+        if let Some((lock, time)) = &self.last_attack_type {
+            if lock.perfect_clear {
+                self.attack_type_text.set_inner_text("Perfect Clear");
+            } else if lock.b2b {
+                self.attack_type_text.set_inner_text(&format!("Back-To-Back {}", lock.placement_kind.name()));
+            } else {
+                self.attack_type_text.set_inner_text(lock.placement_kind.name());
+            }
+            self.attack_type_text
+                .style()
+                .set_property("opacity", &format!("{}", opacity(*time, self.time)))
+                .unwrap();
+        }
+        if let Some((combo, time)) = self.last_combo {
+            self.combo_text.set_inner_text(&format!("{} combo", combo));
+            self.combo_text
+                .style()
+                .set_property("opacity", &format!("{}", opacity(time, self.time)))
+                .unwrap();
+        }
     }
     fn draw_piece(&self, resources: &Resources, piece: FallingPiece, is_ghost: bool) {
         for &(x, y) in &piece.cells() {
