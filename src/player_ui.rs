@@ -41,7 +41,7 @@ enum PlayerState {
     Falling(FallingPiece, FallingPiece),
     SpawnDelay,
     LineClearDelay {
-        elapsed: u32,
+        time: u32,
         lines: ArrayVec<[i32; 4]>,
         piece: FallingPiece
     },
@@ -167,12 +167,6 @@ impl PlayerUi {
     }
     pub fn update(&mut self, resources: &Resources, game_events: &[Event]) {
         self.time += 1;
-        match &mut self.state {
-            PlayerState::LineClearDelay { elapsed, .. } => {
-                *elapsed += 1;
-            }
-            _ => {}
-        }
         for event in game_events {
             match event {
                 Event::PieceMoved | Event::SoftDropped | Event::PieceRotated => {
@@ -190,7 +184,7 @@ impl PlayerUi {
                         self.move_sfx_finished = Some(event);
                     }
                 }
-                &Event::GameOver => {
+                Event::GameOver => {
                     self.state = PlayerState::GameOver;
                 }
                 &Event::PieceFalling(piece, ghost) => {
@@ -213,7 +207,7 @@ impl PlayerUi {
                         self.state = PlayerState::SpawnDelay;
                     } else {
                         self.state = PlayerState::LineClearDelay {
-                            elapsed: 0,
+                            time: self.time,
                             lines: locked.cleared_lines.clone(),
                             piece: *piece
                         };
