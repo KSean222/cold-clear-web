@@ -239,10 +239,14 @@ impl PlayerUi {
         }
     }
     pub fn render(&self, resources: &Resources, game: &Game) {
+        self.draw_board(resources);
+        self.draw_hold(resources, game);
+        self.draw_queue(resources, game);
+        self.draw_garbage_bar(game);
+        self.draw_attack_type_text(game);
+    }
+    fn draw_board(&self, resources: &Resources) {
         set_size_to_css_size(&self.board_canvas);
-        set_size_to_css_size(&self.queue_canvas);
-        set_size_to_css_size(&self.hold_canvas);
-        let cell_size = (resources.skin.height() / 2) as f64;
         for y in 0..21 {
             let row = self.board.get_row(y);
             for x in 0..10 {
@@ -265,11 +269,14 @@ impl PlayerUi {
             }
             _ => {}
         }
+    }
+    fn draw_hold(&self, resources: &Resources, game: &Game) {
+        set_size_to_css_size(&self.hold_canvas);
         self.hold_context.clear_rect(0.0, 0.0, self.hold_canvas.width() as f64, self.hold_canvas.height() as f64);
         if let Some(piece) = game.board.hold_piece {
             let piece_canvas = &resources.pieces[piece];
             const PIECE_SCALE: f64 = 0.8;
-            let scale = self.hold_canvas.width() as f64 / HOLD_WIDTH / cell_size;
+            let scale = self.hold_canvas.width() as f64 / HOLD_WIDTH / resources.cell_size as f64;
             let width = piece_canvas.width() as f64 * PIECE_SCALE * scale;
             let height = piece_canvas.height() as f64 * PIECE_SCALE * scale;
             self.hold_context
@@ -282,29 +289,37 @@ impl PlayerUi {
                 )
                 .unwrap();
         }
+    }
+    fn draw_queue(&self, resources: &Resources, game: &Game) {
+        set_size_to_css_size(&self.queue_canvas);
         self.queue_context.clear_rect(0.0, 0.0, self.queue_canvas.width() as f64, self.hold_canvas.height() as f64);
-        let queue_scale = self.queue_canvas.width() as f64 / HOLD_WIDTH / cell_size;
+        let queue_scale = self.queue_canvas.width() as f64 / HOLD_WIDTH / resources.cell_size as f64;
         for (i, piece) in game.board.next_queue().enumerate() {
             let piece_canvas = &resources.pieces[piece];
             const PIECE_SCALE: f64 = 0.8;
             let width = piece_canvas.width() as f64 * PIECE_SCALE * queue_scale;
             let height = piece_canvas.height() as f64 * PIECE_SCALE * queue_scale;
+            let x = (self.queue_canvas.width() as f64 - width) / 2.0;
+            let mut y = (self.queue_canvas.width() as f64 - height) / 2.0;
+            y += i as f64 * self.queue_canvas.width() as f64 * PIECE_SCALE;
             self.queue_context
                 .draw_image_with_html_canvas_element_and_dw_and_dh(
                     piece_canvas,
-                    (self.queue_canvas.width() as f64 - width) / 2.0,
-                    (self.queue_canvas.width() as f64 - height) / 2.0 + i as f64 * self.queue_canvas.width() as f64 * 0.8,
+                    x,
+                    y,
                     width,
                     height
                 )
                 .unwrap();
         }
+    }
+    fn draw_garbage_bar(&self, game: &Game) {
         self.garbage_bar
             .style()
             .set_property("height", &format!("calc({} / {} * 100%)", game.garbage_queue, BOARD_HEIGHT))
             .unwrap();
-        
-        
+    }
+    fn draw_attack_type_text(&self, game: &Game) {
         if let Some((lock, time)) = &self.last_attack_type {
             if lock.perfect_clear {
                 self.attack_type_text.set_inner_text("Perfect Clear");
@@ -332,16 +347,15 @@ impl PlayerUi {
         }
     }
     fn draw_cell(&self, resources: &Resources, cell: CellColor, is_ghost: bool, x: i32, y: i32) {
-        let src_cell_size = (resources.skin.height() / 2) as f64;
         let dest_cell_size = self.board_canvas.height() as f64 / BOARD_HEIGHT;
         let (cell_x, cell_y) = Resources::cell_pos(cell, is_ghost);
         self.board_context
             .draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
                 &resources.skin,
-                cell_x as f64 * src_cell_size,
-                cell_y as f64 * src_cell_size,
-                src_cell_size,
-                src_cell_size,
+                (cell_x * resources.cell_size) as f64,
+                (cell_y * resources.cell_size) as f64,
+                resources.cell_size as f64,
+                resources.cell_size as f64,
                 x as f64 * dest_cell_size,
                 (BOARD_HEIGHT - (y + 1) as f64) * dest_cell_size,
                 dest_cell_size,

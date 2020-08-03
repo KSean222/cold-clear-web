@@ -10,6 +10,7 @@ use enum_map::EnumMap;
 
 pub struct Resources {
     pub skin: web_sys::HtmlImageElement,
+    pub cell_size: u32,
     pub pieces: EnumMap<Piece, web_sys::HtmlCanvasElement>,
     pub hard_drop_sfx: web_sys::AudioBuffer,
     pub line_clear_sfx: web_sys::AudioBuffer,
@@ -46,11 +47,11 @@ impl Resources {
     pub async fn load() -> Result<Self, JsValue> {
         let audio_context = web_sys::AudioContext::new()?;
         let skin = image("./res/sprites/skin.png").await?;
+        let cell_size = skin.height() / 2;
         let hard_drop_sfx = audio(&audio_context, "./res/sounds/hard-drop.ogg").await?;
         let line_clear_sfx = audio(&audio_context, "./res/sounds/line-clear.ogg").await?;
         let move_sfx = audio(&audio_context, "./res/sounds/move.ogg").await?;
 
-        let cell_size = skin.height() / 2;
         let pieces = (|piece: Piece| {
             let (canvas, context) = utils::new_canvas();
 
@@ -88,6 +89,7 @@ impl Resources {
 
         Ok(Self {
             skin,
+            cell_size,
             pieces,
             hard_drop_sfx,
             line_clear_sfx,
