@@ -315,15 +315,16 @@ impl PlayerUi {
     fn draw_queue(&self, resources: &Resources, game: &Game) {
         set_size_to_css_size(&self.queue_canvas);
         self.queue_context.clear_rect(0.0, 0.0, self.queue_canvas.width() as f64, self.hold_canvas.height() as f64);
-        let queue_scale = self.queue_canvas.width() as f64 / HOLD_WIDTH / resources.cell_size as f64;
+        let queue_scale = self.queue_canvas.width() as f64 / QUEUE_WIDTH / resources.cell_size as f64;
         for (i, piece) in game.board.next_queue().enumerate() {
             let piece_canvas = &resources.pieces[piece];
-            const PIECE_SCALE: f64 = 0.8;
+            const PIECE_SCALE: f64 = 0.6;
+            const SEPARATION: f64 = 0.8;
             let width = piece_canvas.width() as f64 * PIECE_SCALE * queue_scale;
             let height = piece_canvas.height() as f64 * PIECE_SCALE * queue_scale;
             let x = (self.queue_canvas.width() as f64 - width) / 2.0;
-            let mut y = (self.queue_canvas.width() as f64 - height) / 2.0;
-            y += i as f64 * self.queue_canvas.width() as f64 * PIECE_SCALE;
+            let y = (self.queue_canvas.width() as f64 - height) / 2.0
+                + i as f64 * self.queue_canvas.width() as f64 * SEPARATION;
             self.queue_context
                 .draw_image_with_html_canvas_element_and_dw_and_dh(
                     piece_canvas,
