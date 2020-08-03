@@ -1,11 +1,12 @@
 use std::collections::HashSet;
 use std::rc::Rc;
 use std::cell::RefCell;
-use battle::{Event, PieceMoveExecutor};
 
 use crate::utils;
 
+use serde::{Serialize, Deserialize};
 use libtetris::*;
+use battle::{Event, PieceMoveExecutor};
 use webutil::event::EventTargetExt;
 
 pub trait InputSource {
@@ -17,7 +18,7 @@ pub trait InputSource {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InputConfig<T: Clone> {
     pub left: T,
     pub right: T,
@@ -58,11 +59,8 @@ impl KeyboardInput {
             keys
         }
     }
-}
-
-impl Default for KeyboardInput {
-    fn default() -> Self {
-        Self::new(InputConfig {
+    pub fn default_config() -> InputConfig<String> {
+        InputConfig {
             left: "ArrowLeft".to_owned(),
             right: "ArrowRight".to_owned(),
             rotate_left: "KeyZ".to_owned(),
@@ -70,7 +68,7 @@ impl Default for KeyboardInput {
             hard_drop: "Space".to_owned(),
             soft_drop: "ArrowDown".to_owned(),
             hold: "KeyC".to_owned(),
-        })
+        }
     }
 }
 

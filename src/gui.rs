@@ -4,6 +4,7 @@ use crate::player_ui::PlayerUi;
 use crate::utils;
 use crate::resources::Resources;
 use crate::input::*;
+use crate::options::*;
 
 use battle::{Battle, GameConfig};
 
@@ -18,10 +19,11 @@ fn random_seed() -> [u8; 16] {
 
 pub struct CCGui {
     resources: Resources,
-    p1_ui: PlayerUi,
-    p2_ui: PlayerUi,
+    options: Options,
     p1_input: Box<dyn InputSource>,
     p2_input: Box<dyn InputSource>,
+    p1_ui: PlayerUi,
+    p2_ui: PlayerUi,
     fps_text: web_sys::HtmlElement,
     countdown: u32,
     countdown_text: web_sys::HtmlElement,
@@ -86,20 +88,15 @@ impl CCGui {
             random_seed()
         );
         
-        let board = battle.player_1.board.to_compressed();
-        let options = cold_clear::Options::default();
-        let evaluator = cold_clear::evaluation::Standard::default();
-        let bot = BotInput::new(cold_clear::Interface::launch(board, options, evaluator).await, 0);
-        let p1_input = Box::new(bot) as Box<dyn InputSource>;
-
-        let board = battle.player_2.board.to_compressed();
-        let options = cold_clear::Options::default();
-        let evaluator = cold_clear::evaluation::Standard::default();
-        let bot = BotInput::new(cold_clear::Interface::launch(board, options, evaluator).await, 0);
-        let p2_input = Box::new(bot) as Box<dyn InputSource>;
+        let options = Options::read();
+        let (p1_input, p1_name) =
+            options.p1.to_player(battle.player_1.board.to_compressed()).await;
+        let (p2_input, p2_name) =
+            options.p2.to_player(battle.player_2.board.to_compressed()).await;
 
         Self {
             resources,
+            options,
             p1_ui,
             p2_ui,
             p1_input,

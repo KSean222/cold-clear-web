@@ -7,6 +7,7 @@ mod input;
 mod player_ui;
 mod resources;
 mod audio_ended_event;
+mod options;
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
