@@ -25,15 +25,18 @@ pub struct PlayerUi {
     queue_context: web_sys::CanvasRenderingContext2d,
     hold_canvas: web_sys::HtmlCanvasElement,
     hold_context: web_sys::CanvasRenderingContext2d,
-    stats: web_sys::Element,
+    statistics_text_name: web_sys::HtmlElement,
+    statistics_text_value: web_sys::HtmlElement,
     garbage_bar: web_sys::HtmlElement,
     attack_type_text: web_sys::HtmlElement,
     combo_text: web_sys::HtmlElement,
     move_sfx_finished: Option<webutil::event::EventOnce<audio_ended_event::Ended>>,
     board: Board<ColoredRow>,
+    statistics: Statistics,
     state: PlayerState,
     last_attack_type: Option<(LockResult, u32)>,
     last_combo: Option<(u32, u32)>,
+    info: Option<cold_clear::Info>,
     time: u32
 }
 
@@ -50,8 +53,6 @@ enum PlayerState {
 
 // Defined in terms of cells
 const HOLD_WIDTH: f64 = 4.0;
-const HOLD_HEIGHT: f64 = 4.0;
-const STATS_WIDTH: f64 = 4.0;
 const BOARD_WIDTH: f64 = 10.0;
 const QUEUE_WIDTH: f64 = 3.0;
 const BOARD_HEIGHT: f64 = 20.5;
@@ -77,11 +78,30 @@ impl PlayerUi {
         container.set_class_name("board-container");
         element.append_child(&container).unwrap();
 
-        let stats = document
+        let statistics_text_label: web_sys::HtmlElement = document
             .create_element("div")
+            .unwrap()
+            .dyn_into()
             .unwrap();
-        stats.set_class_name("stats");
-        container.append_child(&stats).unwrap();
+        statistics_text_label.set_class_name("stats-label");
+        statistics_text_label.set_inner_text("Statistics");
+        container.append_child(&statistics_text_label).unwrap();
+
+        let statistics_text_name: web_sys::HtmlElement = document
+            .create_element("div")
+            .unwrap()
+            .dyn_into()
+            .unwrap();
+        statistics_text_name.set_class_name("stats-box stats-name");
+        container.append_child(&statistics_text_name).unwrap();
+
+        let statistics_text_value: web_sys::HtmlElement = document
+            .create_element("div")
+            .unwrap()
+            .dyn_into()
+            .unwrap();
+        statistics_text_value.set_class_name("stats-box stats-value");
+        container.append_child(&statistics_text_value).unwrap();
 
         let (board_canvas, board_context) = utils::new_canvas();
         board_canvas.set_class_name("board");
@@ -153,19 +173,25 @@ impl PlayerUi {
             garbage_bar,
             attack_type_text,
             combo_text,
-            stats,
+            statistics_text_name,
+            statistics_text_value,
             move_sfx_finished: None,
             board: Board::new(),
+            statistics: Statistics::default(),
             state: PlayerState::SpawnDelay,
             last_attack_type: None,
             last_combo: None,
+            info: None,
             time: 0
         }
     }
     pub fn element(&self) -> &web_sys::Element {
         &self.element
     }
-    pub fn update(&mut self, resources: &Resources, game_events: &[Event]) {
+    pub fn update(&mut self, resources: &Resources, game_events: &[Event], info: Option<cold_clear::Info>) {
+        if info.is_some() {
+            self.info = info;
+        }
         self.time += 1;
         for event in game_events {
             match event {
@@ -196,6 +222,7 @@ impl PlayerUi {
                     }
                 }
                 Event::PiecePlaced { piece, locked, hard_drop_distance } => {
+                    self.statistics.update(locked);
                     if hard_drop_distance.is_some() {
                         utils::play_sound(&resources.audio_context, &resources.hard_drop_sfx).unwrap();
                     }
@@ -238,6 +265,7 @@ impl PlayerUi {
         self.draw_queue(resources, game);
         self.draw_garbage_bar(game);
         self.draw_attack_type_text(game);
+        self.draw_statistics();
     }
     fn draw_board(&self, resources: &Resources) {
         set_size_to_css_size(&self.board_canvas);
@@ -334,6 +362,45 @@ impl PlayerUi {
                 .set_property("opacity", &format!("{}", opacity(time, self.time)))
                 .unwrap();
         }
+    }
+    fn draw_statistics(&self) {
+        let seconds = self.time as f64 / crate::UPS;
+        let mut lines = vec![
+            ("Pieces", format!("{}", self.statistics.pieces)),
+            ("PPS", format!("{:.1}", self.statistics.pieces as f64 / seconds)),
+            ("Lines", format!("{}", self.statistics.lines)),
+            ("Attack", format!("{}", self.statistics.attack)),
+            ("APM", format!("{:.1}", self.statistics.attack as f64 / seconds * 60.0)),
+            ("APP", format!("{:.3}", self.statistics.attack as f64 / self.statistics.pieces as f64)),
+            ("Max Ren", format!("{}", self.statistics.max_combo)),
+            ("Single", format!("{}", self.statistics.singles)),
+            ("Double", format!("{}", self.statistics.doubles)),
+            ("Triple", format!("{}", self.statistics.triples)),
+            ("Tetris", format!("{}", self.statistics.tetrises)),
+            // ("Mini T0", format!("{}", self.statistics.mini_tspin_zeros)),
+            // ("Mini T1", format!("{}", self.statistics.mini_tspin_singles)),
+            // ("Mini T2", format!("{}", self.statistics.mini_tspin_doubles)),
+            ("T-Spin 0", format!("{}", self.statistics.tspin_zeros)),
+            ("T-Spin 1", format!("{}", self.statistics.tspin_singles)),
+            ("T-Spin 2", format!("{}", self.statistics.tspin_doubles)),
+            ("T-Spin 3", format!("{}", self.statistics.tspin_triples)),
+            ("Perfect", format!("{}", self.statistics.perfect_clears))
+        ];
+        if let Some(info) = &self.info {
+            // Bot info
+            lines.extend_from_slice(&[
+                ("", "".to_owned()),
+                ("Depth", format!("{}", info.depth)),
+                ("Nodes", format!("{}", info.nodes)),
+                ("O. Rank", format!("{}", info.original_rank))
+            ]);
+        }
+        let (names, values): (Vec<_>, Vec<_>) = lines
+            .into_iter()
+            .map(|(n, v)| (n.to_owned(), v))
+            .unzip();
+        self.statistics_text_name.set_inner_text(&names.join("\n"));
+        self.statistics_text_value.set_inner_text(&values.join("\n"));
     }
     fn draw_piece(&self, resources: &Resources, piece: FallingPiece, is_ghost: bool) {
         for &(x, y) in &piece.cells() {

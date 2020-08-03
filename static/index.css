@@ -85,7 +85,7 @@ body {
     height: var(--container-true-height);
     display: grid;
     grid-template-columns: 4fr 10fr 0.25fr 3fr;
-    grid-template-rows: 4fr 16.5fr 1.25fr;
+    grid-template-rows: 4fr 1fr 15.5fr 1.25fr;
 }
 
 .hold-box {
@@ -102,10 +102,28 @@ body {
     color: white;
 }
 
-.stats {
+.stats-label {
     grid-column: 1 / 2;
     grid-row: 2 / 3;
-    background-color: red;
+    text-align: center;
+    font-size: calc(var(--container-scale) * 0.6);
+    color: white;
+}
+
+.stats-box {
+    grid-column: 1 / 2;
+    grid-row: 3 / 4;
+    font-size: calc(var(--container-scale) * 0.5);
+    color: white;
+}
+
+.stats-name {
+    text-align: left;
+}
+
+.stats-value {
+    text-align: right;
+    padding-right: calc(var(--container-scale) * 0.1);
 }
 
 .board {
@@ -113,12 +131,12 @@ body {
     width: 100%;
     height: 100%;
     grid-column: 2 / 3;
-    grid-row: 1 / 3;
+    grid-row: 1 / 4;
 }
 
 .garbage-bar {
     grid-column: 3 / 4;
-    grid-row: 1 / 3;
+    grid-row: 1 / 4;
     overflow: hidden;
 }
 
@@ -136,7 +154,7 @@ body {
     width: 100%;
     height: 100%;
     grid-column: 4 / 5;
-    grid-row: 1 / 3;
+    grid-row: 1 / 4;
 }
 
 .queue-text {
@@ -147,7 +165,7 @@ body {
 
 .attack-text {
     grid-column: 1 / 5;
-    grid-row: 3 / 4;
+    grid-row: 4 / 5;
     font-size: calc(var(--container-scale) * 0.8);
     color: white;
 }
