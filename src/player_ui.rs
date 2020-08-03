@@ -53,7 +53,6 @@ enum PlayerState {
 
 // Defined in terms of cells
 const HOLD_WIDTH: f64 = 4.0;
-const BOARD_WIDTH: f64 = 10.0;
 const QUEUE_WIDTH: f64 = 3.0;
 const BOARD_HEIGHT: f64 = 20.5;
 
