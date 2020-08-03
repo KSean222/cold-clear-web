@@ -17,6 +17,7 @@ fn random_seed() -> [u8; 16] {
 }
 
 pub struct CCGui {
+    resources: Resources,
     p1_ui: PlayerUi,
     p2_ui: PlayerUi,
     p1_input: Box<dyn InputSource>,
@@ -30,6 +31,8 @@ pub struct CCGui {
 
 impl CCGui {
     pub async fn new() -> Self {
+        let resources = Resources::load().await.unwrap();
+
         let document = utils::document();
         let body = utils::body();
 
@@ -96,6 +99,7 @@ impl CCGui {
         let p2_input = Box::new(bot) as Box<dyn InputSource>;
 
         Self {
+            resources,
             p1_ui,
             p2_ui,
             p1_input,
@@ -107,18 +111,18 @@ impl CCGui {
             battle
         }
     }
-    pub async fn update(&mut self, resources: &Resources) {
+    pub async fn update(&mut self) {
         if self.countdown > 0 {
             self.countdown -= 1;
         } else {
             let update = self.battle.update(self.p1_input.controller(), self.p2_input.controller());
             let p1_info = self.p1_input.update(&self.battle.player_1.board, &update.player_1.events, update.player_1.garbage_queue);
             let p2_info = self.p2_input.update(&self.battle.player_2.board, &update.player_2.events, update.player_2.garbage_queue);
-            self.p1_ui.update(resources, &update.player_1.events, p1_info);
-            self.p2_ui.update(resources, &update.player_2.events, p2_info);
+            self.p1_ui.update(&self.resources, &update.player_1.events, p1_info);
+            self.p2_ui.update(&self.resources, &update.player_2.events, p2_info);
         }
     }
-    pub fn render(&self, resources: &Resources, smooth_delta: f64) {
+    pub fn render(&self, smooth_delta: f64) {
         self.fps_text.set_inner_text(&format!("FPS: {:.0}", 1.0 / smooth_delta));
         if self.countdown > 0 {
             self.countdown_text.set_inner_text(&format!("{}", self.countdown / crate::UPS as u32 + 1));
@@ -127,7 +131,7 @@ impl CCGui {
         }
         let elapsed_seconds = self.battle.time / 60;
         self.timer_text.set_inner_text(&format!("{}:{:02}", elapsed_seconds / 60, elapsed_seconds % 60));
-        self.p1_ui.render(resources, &self.battle.player_1);
-        self.p2_ui.render(resources, &self.battle.player_2);
+        self.p1_ui.render(&self.resources, &self.battle.player_1);
+        self.p2_ui.render(&self.resources, &self.battle.player_2);
     }
 }
