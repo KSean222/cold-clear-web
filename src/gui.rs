@@ -6,9 +6,10 @@ use crate::resources::Resources;
 use crate::input::*;
 use crate::options::*;
 
-use battle::{Battle, GameConfig};
+use battle::Battle;
 
 const START_COUNTDOWN: u32 = 3;
+const RESET_COUNTDOWN: u32 = 5;
 fn random_seed() -> [u8; 16] {
     let mut seed = [0; 16];
     for n in &mut seed {
@@ -28,6 +29,8 @@ pub struct CCGui {
     countdown: u32,
     countdown_text: web_sys::HtmlElement,
     timer_text: web_sys::HtmlElement,
+    game_over: bool,
+    reset_countdown: u32,
     battle: Battle
 }
 
@@ -79,16 +82,15 @@ impl CCGui {
             .unwrap();
         timer_text.set_id("timer-text");
         middle_text.append_child(&timer_text).unwrap();
-
+        
+        let options = Options::read();
         let battle = Battle::new(
-            GameConfig::default(), 
-            GameConfig::default(), 
+            options.p1.game.clone(), 
+            options.p2.game.clone(), 
             random_seed(),
             random_seed(),
             random_seed()
         );
-        
-        let options = Options::read();
         let (p1_input, p1_name) =
             options.p1.to_player(battle.player_1.board.to_compressed()).await;
         let (p2_input, p2_name) =
@@ -105,6 +107,8 @@ impl CCGui {
             countdown_text,
             timer_text,
             countdown: START_COUNTDOWN * crate::UPS as u32,
+            game_over: false,
+            reset_countdown: 0,
             battle
         }
     }
@@ -117,6 +121,45 @@ impl CCGui {
             let p2_info = self.p2_input.update(&self.battle.player_2.board, &update.player_2.events, update.player_2.garbage_queue);
             self.p1_ui.update(&self.resources, &update.player_1.events, p1_info);
             self.p2_ui.update(&self.resources, &update.player_2.events, p2_info);
+            if self.game_over {
+                if self.reset_countdown > 0 {
+                    self.reset_countdown -= 1;
+                } else {
+                    self.game_over = false;
+                    self.countdown = START_COUNTDOWN * crate::UPS as u32;
+                    
+                    self.p1_ui.reset();
+                    self.p2_ui.reset();
+                    self.options = Options::read();
+                    self.battle = Battle::new(
+                        self.options.p1.game.clone(), 
+                        self.options.p2.game.clone(), 
+                        random_seed(),
+                        random_seed(),
+                        random_seed()
+                    );
+                    let (p1_input, p1_name) =
+                        self.options.p1.to_player(self.battle.player_1.board.to_compressed()).await;
+                    let (p2_input, p2_name) =
+                        self.options.p2.to_player(self.battle.player_2.board.to_compressed()).await;
+                    self.p1_input = p1_input;
+                    self.p2_input = p2_input;
+                }
+            } else {
+                for event in &update.player_1.events {
+                    if let battle::Event::GameOver = event {
+                        self.game_over = true;
+                    }
+                }
+                for event in &update.player_2.events {
+                    if let battle::Event::GameOver = event {
+                        self.game_over = true;
+                    }
+                }
+                if self.game_over {
+                    self.reset_countdown = RESET_COUNTDOWN * crate::UPS as u32;
+                }
+            }
         }
     }
     pub fn render(&self, smooth_delta: f64) {

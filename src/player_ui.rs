@@ -424,4 +424,15 @@ impl PlayerUi {
             )
             .unwrap();
     }
+    pub fn reset(&mut self) {
+        self.board = Board::new();
+        self.statistics = Statistics::default();
+        self.state = PlayerState::SpawnDelay;
+        self.last_attack_type = None;
+        self.attack_type_text.set_inner_text("");
+        self.last_combo = None;
+        self.attack_type_text.set_inner_text("");
+        self.info = None;
+        self.time = 0;
+    }
 }

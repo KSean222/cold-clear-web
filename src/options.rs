@@ -2,7 +2,6 @@ use crate::utils;
 use crate::input::*;
 
 use serde::{Serialize, Deserialize};
-use serde::de::DeserializeOwned;
 use battle::GameConfig;
 use cold_clear::evaluation::Evaluator;
 
