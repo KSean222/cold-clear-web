@@ -8,7 +8,7 @@
 :root {
     --container-width: 17.25;
     --container-height: 21.75;
-    --container-width-padding: 3;
+    --container-width-padding: 5;
     --container-height-padding: 1;
     --container-width-scale: calc(50vw / (var(--container-width) + var(--container-width-padding)));
     --container-height-scale: calc(100vh / (var(--container-height) + var(--container-height-padding)));
@@ -49,6 +49,7 @@ body {
 #middle-text > * {
     position: absolute;
     transform: translate(-50%, -50%);
+    white-space: nowrap;
 }
 
 #countdown-text {
@@ -59,6 +60,11 @@ body {
 #timer-text {
     top: 90%;
     font-size: calc(var(--container-scale) * 1);
+}
+
+#win-counter-text {
+    top: 80%;
+    font-size: calc(var(--container-scale) * 1.4);
 }
 
 #player-one {

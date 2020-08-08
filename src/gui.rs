@@ -25,10 +25,13 @@ pub struct CCGui {
     p2_input: Box<dyn InputSource>,
     p1_ui: PlayerUi,
     p2_ui: PlayerUi,
+    p1_wins: u32,
+    p2_wins: u32,
     fps_text: web_sys::HtmlElement,
     countdown: u32,
     countdown_text: web_sys::HtmlElement,
     timer_text: web_sys::HtmlElement,
+    win_count_text: web_sys::HtmlElement,
     game_over: bool,
     reset_countdown: u32,
     battle: Battle
@@ -83,6 +86,14 @@ impl CCGui {
         timer_text.set_id("timer-text");
         middle_text.append_child(&timer_text).unwrap();
         
+        let win_count_text: web_sys::HtmlElement = document
+            .create_element("div")
+            .unwrap()
+            .dyn_into()
+            .unwrap();
+        win_count_text.set_id("win-counter-text");
+        middle_text.append_child(&win_count_text).unwrap();
+        
         let options = Options::read();
         let battle = Battle::new(
             options.p1.game.clone(), 
@@ -103,9 +114,12 @@ impl CCGui {
             p2_ui,
             p1_input,
             p2_input,
+            p1_wins: 0,
+            p2_wins: 0,
             fps_text,
             countdown_text,
             timer_text,
+            win_count_text,
             countdown: START_COUNTDOWN * crate::UPS as u32,
             game_over: false,
             reset_countdown: 0,
@@ -148,11 +162,13 @@ impl CCGui {
             } else {
                 for event in &update.player_1.events {
                     if let battle::Event::GameOver = event {
+                        self.p2_wins += 1;
                         self.game_over = true;
                     }
                 }
                 for event in &update.player_2.events {
                     if let battle::Event::GameOver = event {
+                        self.p1_wins += 1;
                         self.game_over = true;
                     }
                 }
@@ -171,6 +187,7 @@ impl CCGui {
         }
         let elapsed_seconds = self.battle.time / 60;
         self.timer_text.set_inner_text(&format!("{}:{:02}", elapsed_seconds / 60, elapsed_seconds % 60));
+        self.win_count_text.set_inner_text(&format!("{} - {}", self.p1_wins, self.p2_wins));
         self.p1_ui.render(&self.resources, &self.battle.player_1, &self.options.p1);
         self.p2_ui.render(&self.resources, &self.battle.player_2, &self.options.p1);
     }
