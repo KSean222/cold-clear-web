@@ -189,6 +189,6 @@ impl CCGui {
         self.timer_text.set_inner_text(&format!("{}:{:02}", elapsed_seconds / 60, elapsed_seconds % 60));
         self.win_count_text.set_inner_text(&format!("{} - {}", self.p1_wins, self.p2_wins));
         self.p1_ui.render(&self.resources, &self.battle.player_1, &self.options.p1);
-        self.p2_ui.render(&self.resources, &self.battle.player_2, &self.options.p1);
+        self.p2_ui.render(&self.resources, &self.battle.player_2, &self.options.p2);
     }
 }
