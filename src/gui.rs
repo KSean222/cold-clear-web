@@ -171,7 +171,7 @@ impl CCGui {
         }
         let elapsed_seconds = self.battle.time / 60;
         self.timer_text.set_inner_text(&format!("{}:{:02}", elapsed_seconds / 60, elapsed_seconds % 60));
-        self.p1_ui.render(&self.resources, &self.battle.player_1);
-        self.p2_ui.render(&self.resources, &self.battle.player_2);
+        self.p1_ui.render(&self.resources, &self.battle.player_1, &self.options.p1);
+        self.p2_ui.render(&self.resources, &self.battle.player_2, &self.options.p1);
     }
 }

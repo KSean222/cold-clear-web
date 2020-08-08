@@ -1,9 +1,10 @@
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{JsCast, JsValue};
 use webutil::event::EventTargetExt;
 
 use crate::utils;
 use crate::resources::Resources;
 use crate::audio_ended_event;
+use crate::options::PlayerConfig;
 
 use libtetris::*;
 use battle::{Game, Event};
@@ -258,15 +259,15 @@ impl PlayerUi {
             }
         }
     }
-    pub fn render(&self, resources: &Resources, game: &Game) {
-        self.draw_board(resources);
+    pub fn render(&self, resources: &Resources, game: &Game, config: &PlayerConfig) {
+        self.draw_board(resources, config);
         self.draw_hold(resources, game);
         self.draw_queue(resources, game);
         self.draw_garbage_bar(game);
-        self.draw_attack_type_text(game);
+        self.draw_attack_type_text();
         self.draw_statistics();
     }
-    fn draw_board(&self, resources: &Resources) {
+    fn draw_board(&self, resources: &Resources, config: &PlayerConfig) {
         set_size_to_css_size(&self.board_canvas);
         for y in 0..21 {
             let row = self.board.get_row(y);
@@ -285,8 +286,44 @@ impl PlayerUi {
                 self.draw_piece(resources, ghost, true);
                 self.draw_piece(resources, piece, false);
             }
-            &PlayerState::LineClearDelay { piece, .. } => {
-                self.draw_piece(resources, piece, false);
+            PlayerState::LineClearDelay { piece, lines, time } => {
+                const OFFSET_FRAMES: u32 = 15;
+                const INIT_WIDTH: f64 = 9.0;
+                const TOTAL_WIDTH: f64 = 10.0;
+                self.draw_piece(resources, *piece, false);
+                let dest_cell_size = self.board_canvas.height() as f64 / BOARD_HEIGHT;
+                let elapsed = self.time - *time;
+                let line_clear_delay = config.game.line_clear_delay.saturating_sub(OFFSET_FRAMES).max(1) as f64;
+                let rect_scale = (elapsed as f64 / line_clear_delay).min(1.0);
+                let rect_width = dest_cell_size * (INIT_WIDTH + rect_scale);
+                let rect_height = dest_cell_size * rect_scale;
+                let cells_scale = (elapsed.saturating_sub(OFFSET_FRAMES) as f64 / line_clear_delay).min(1.0);
+                let cells_width = dest_cell_size * (INIT_WIDTH + cells_scale);
+                let cells_height = dest_cell_size * cells_scale;
+                self.board_context.set_fill_style(&JsValue::from_str("white"));
+                for &line in lines {
+                    let (x, y) = self.cell_pos(0, line);
+                    self.board_context.fill_rect(
+                        x + (dest_cell_size * TOTAL_WIDTH - rect_width) / 2.0,
+                        y + (dest_cell_size - rect_height) / 2.0,
+                        rect_width,
+                        rect_height
+                    );
+                    let cells_x = x + (dest_cell_size * TOTAL_WIDTH - cells_width) / 2.0;
+                    let cells_y = y + (dest_cell_size - cells_height) / 2.0;
+                    self.board_context.save();
+                    self.board_context.begin_path();
+                    self.board_context.move_to(cells_x, cells_y);
+                    self.board_context.line_to(cells_x + cells_width, cells_y);
+                    self.board_context.line_to(cells_x + cells_width, cells_y + cells_height);
+                    self.board_context.line_to(cells_x, cells_y + cells_height);
+                    self.board_context.clip();
+                    for x in 0..10 {
+                        self.draw_cell(resources, CellColor::Empty, false, x, line);
+                    }
+                    self.board_context.restore();
+                }
+                self.board_context.set_fill_style(&JsValue::from_str(""));
             }
             _ => {}
         }
@@ -341,7 +378,7 @@ impl PlayerUi {
             .set_property("height", &format!("calc({} / {} * 100%)", game.garbage_queue, BOARD_HEIGHT))
             .unwrap();
     }
-    fn draw_attack_type_text(&self, game: &Game) {
+    fn draw_attack_type_text(&self) {
         if let Some((lock, time)) = &self.last_attack_type {
             if lock.perfect_clear {
                 self.attack_type_text.set_inner_text("Perfect Clear");
@@ -407,18 +444,23 @@ impl PlayerUi {
             self.draw_cell(resources, piece.kind.0.color(), is_ghost, x, y);
         }
     }
+    fn cell_pos(&self, x: i32, y: i32) -> (f64, f64) {
+        let dest_cell_size = self.board_canvas.height() as f64 / BOARD_HEIGHT;
+        (x as f64 * dest_cell_size, (BOARD_HEIGHT - (y + 1) as f64) * dest_cell_size)
+    }
     fn draw_cell(&self, resources: &Resources, cell: CellColor, is_ghost: bool, x: i32, y: i32) {
         let dest_cell_size = self.board_canvas.height() as f64 / BOARD_HEIGHT;
-        let (cell_x, cell_y) = Resources::cell_pos(cell, is_ghost);
+        let (dest_cell_x, dest_cell_y) = self.cell_pos(x, y);
+        let (src_cell_x, src_cell_y) = Resources::cell_pos(cell, is_ghost);
         self.board_context
             .draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
                 &resources.skin,
-                (cell_x * resources.cell_size) as f64,
-                (cell_y * resources.cell_size) as f64,
+                (src_cell_x * resources.cell_size) as f64,
+                (src_cell_y * resources.cell_size) as f64,
                 resources.cell_size as f64,
                 resources.cell_size as f64,
-                x as f64 * dest_cell_size,
-                (BOARD_HEIGHT - (y + 1) as f64) * dest_cell_size,
+                dest_cell_x,
+                dest_cell_y,
                 dest_cell_size,
                 dest_cell_size
             )
