@@ -50,10 +50,10 @@ pub struct PlayerConfig {
 impl PlayerConfig {
     pub async fn to_player(&self, board: libtetris::Board) -> (Box<dyn InputSource>, String) {
         if self.is_bot {
-            let mut name = format!("Cold Clear\n{}", self.bot_config.evaluator.name());
+            let mut name = format!("Cold Clear ({})", self.bot_config.evaluator.name());
             if self.bot_config.speed_limit != 0 {
                 name.push_str(
-                    &format!("\n{:.1}%", 100.0 / (self.bot_config.speed_limit + 1) as f32)
+                    &format!(" ({:.1}%)", 100.0 / (self.bot_config.speed_limit + 1) as f32)
                 );
             }
             (Box::new(BotInput::new(cold_clear::Interface::launch(

@@ -51,16 +51,6 @@ impl CCGui {
             .unwrap();
         fps_text.set_id("fps-text");
         body.append_child(&fps_text).unwrap();
-
-        let p1_ui = PlayerUi::new();
-        let p1_element = p1_ui.element();
-        p1_element.set_id("player-one");
-        body.append_child(p1_element).unwrap();
-
-        let p2_ui = PlayerUi::new();
-        let p2_element = p2_ui.element();
-        p2_element.set_id("player-two");
-        body.append_child(p2_element).unwrap();
         
         let middle_text: web_sys::HtmlElement = document
             .create_element("div")
@@ -107,13 +97,23 @@ impl CCGui {
         let (p2_input, p2_name) =
             options.p2.to_player(battle.player_2.board.to_compressed()).await;
 
+        let p1_ui = PlayerUi::new(p1_name);
+        let p1_element = p1_ui.element();
+        p1_element.set_id("player-one");
+        body.append_child(p1_element).unwrap();
+
+        let p2_ui = PlayerUi::new(p2_name);
+        let p2_element = p2_ui.element();
+        p2_element.set_id("player-two");
+        body.append_child(p2_element).unwrap();
+
         Self {
             resources,
             options,
-            p1_ui,
-            p2_ui,
             p1_input,
             p2_input,
+            p1_ui,
+            p2_ui,
             p1_wins: 0,
             p2_wins: 0,
             fps_text,
@@ -142,8 +142,6 @@ impl CCGui {
                     self.game_over = false;
                     self.countdown = START_COUNTDOWN * crate::UPS as u32;
                     
-                    self.p1_ui.reset();
-                    self.p2_ui.reset();
                     self.options = Options::read();
                     self.battle = Battle::new(
                         self.options.p1.game.clone(), 
@@ -152,12 +150,16 @@ impl CCGui {
                         random_seed(),
                         random_seed()
                     );
+                    
                     let (p1_input, p1_name) =
                         self.options.p1.to_player(self.battle.player_1.board.to_compressed()).await;
                     let (p2_input, p2_name) =
                         self.options.p2.to_player(self.battle.player_2.board.to_compressed()).await;
+                    
                     self.p1_input = p1_input;
                     self.p2_input = p2_input;
+                    self.p1_ui.reset(p1_name);
+                    self.p2_ui.reset(p2_name);
                 }
             } else {
                 for event in &update.player_1.events {

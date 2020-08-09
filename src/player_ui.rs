@@ -31,6 +31,7 @@ pub struct PlayerUi {
     garbage_bar: web_sys::HtmlElement,
     attack_type_text: web_sys::HtmlElement,
     combo_text: web_sys::HtmlElement,
+    name_text: web_sys::HtmlElement,
     move_sfx_finished: Option<webutil::event::EventOnce<audio_ended_event::Ended>>,
     board: Board<ColoredRow>,
     statistics: Statistics,
@@ -64,7 +65,7 @@ fn set_size_to_css_size(canvas: &web_sys::HtmlCanvasElement) {
 }
 
 impl PlayerUi {
-    pub fn new() -> Self {
+    pub fn new(name: String) -> Self {
         let document = utils::document();
 
         let element = document
@@ -162,6 +163,15 @@ impl PlayerUi {
         combo_text.set_class_name("attack-text combo-text");
         container.append_child(&combo_text).unwrap();
         
+        let name_text: web_sys::HtmlElement = document
+            .create_element("div")
+            .unwrap()
+            .dyn_into()
+            .unwrap();
+        name_text.set_id("name-text");
+        name_text.set_inner_text(&name);
+        container.append_child(&name_text).unwrap();
+        
         Self {
             element,
             board_canvas,
@@ -173,6 +183,7 @@ impl PlayerUi {
             garbage_bar,
             attack_type_text,
             combo_text,
+            name_text,
             statistics_text_name,
             statistics_text_value,
             move_sfx_finished: None,
@@ -466,14 +477,15 @@ impl PlayerUi {
             )
             .unwrap();
     }
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, name: String) {
         self.board = Board::new();
         self.statistics = Statistics::default();
         self.state = PlayerState::SpawnDelay;
         self.last_attack_type = None;
         self.attack_type_text.set_inner_text("");
         self.last_combo = None;
-        self.attack_type_text.set_inner_text("");
+        self.combo_text.set_inner_text("");
+        self.name_text.set_inner_text(&name);
         self.info = None;
         self.time = 0;
     }
