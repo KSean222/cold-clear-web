@@ -6,6 +6,7 @@ use battle::GameConfig;
 use cold_clear::evaluation::Evaluator;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
 pub struct Options {
     pub p1: PlayerConfig,
     pub p2: PlayerConfig
@@ -30,16 +31,18 @@ impl Options {
             .unwrap()
             .unwrap();
         if let Some(options) = local_storage.get_item(OPTIONS).unwrap() {
-            serde_json::from_str(&options).unwrap()
-        } else {
-            let options = Self::default();
-            local_storage.set_item(OPTIONS, &serde_json::to_string(&options).unwrap()).unwrap();
-            options
+            if let Ok(options) = serde_json::from_str(&options) {
+                return options;
+            }
         }
+        let options = Self::default();
+        local_storage.set_item(OPTIONS, &serde_json::to_string(&options).unwrap()).unwrap();
+        options
     }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
 pub struct PlayerConfig {
     pub controls: InputConfig<String>,
     pub game: GameConfig,
@@ -79,6 +82,7 @@ impl Default for PlayerConfig {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(default)]
 pub struct BotConfig {
     pub evaluator: cold_clear::evaluation::Standard,
     pub options: cold_clear::Options,
