@@ -1,0 +1,14 @@
+{
+  "name": "cold-clear-web",
+  "collaborators": [
+    "KSean222 <44050761+KSean222@users.noreply.github.com>"
+  ],
+  "version": "0.1.0",
+  "files": [
+    "main_bg.wasm",
+    "main.js",
+    "main.d.ts"
+  ],
+  "browser": "main.js",
+  "types": "main.d.ts"
+}

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="./main.js"></script>
+        <script>
+            window.onload = () => wasm_bindgen("./main_bg.wasm").then(wasm => wasm.main());
+        </script>
+        <link href="./index.css" rel="stylesheet">
+        <title>Cold Clear Web</title>
+    </head>
+    <body></body>
+</html>
