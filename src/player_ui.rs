@@ -338,6 +338,77 @@ impl PlayerUi {
             }
             _ => {}
         }
+
+        if let Some(info) = &self.info {
+            let dest_cell_size = self.board_canvas.height() as f64 / BOARD_HEIGHT;
+
+            let has_pc = info.plan.iter().any(|(_, lock)| lock.perfect_clear);
+
+            let mut y_map = [0; 40];
+            for i in 0..y_map.len() {
+                y_map[i] = i as i32;
+            }
+            for (placement, lock) in &info.plan {
+                for &(x, y, d) in &placement.cells_with_connections() {
+                    let color = match placement.kind.0.color() {
+                        CellColor::Z => "rgb(255, 32, 32)",
+                        CellColor::S => "rgb(32, 255, 32)",
+                        CellColor::O => "rgb(255, 255, 32)",
+                        CellColor::L => "rgb(255, 143, 32)",
+                        CellColor::J => "rgb(96, 96, 255)",
+                        CellColor::I => "rgb(32, 255, 255)",
+                        CellColor::T => "rgb(143, 32, 255)",
+                        _ => ""
+                    };
+                    self.board_context.set_fill_style(&JsValue::from_str(color));
+                    const LINE_WIDTH: f64 = 10.0 / 83.0;
+                    const CELL_CORNERS: &[(f64, f64)] = &[
+                        (0.0, 0.0),
+                        (1.0 - LINE_WIDTH, 0.0),
+                        (1.0 - LINE_WIDTH, 1.0 - LINE_WIDTH),
+                        (0.0, 1.0 - LINE_WIDTH),
+                    ];
+                    let (x, y) = self.cell_pos(x, y_map[y as usize]);
+                    for &(cell_x, cell_y) in CELL_CORNERS {
+                        self.board_context.fill_rect(
+                            cell_x * dest_cell_size + x,
+                            cell_y * dest_cell_size + y,
+                            LINE_WIDTH * dest_cell_size,
+                            LINE_WIDTH * dest_cell_size
+                        );
+                    }
+                    for d in d.complement().iter() {
+                        let (cell_x, cell_y, cell_w, cell_h) = match d {
+                            Direction::Up => (0.0, 0.0, 1.0, LINE_WIDTH),
+                            Direction::Right => (1.0 - LINE_WIDTH, 0.0, LINE_WIDTH, 1.0),
+                            Direction::Down => (0.0, 1.0 - LINE_WIDTH, 1.0, LINE_WIDTH),
+                            Direction::Left => (0.0, 0.0, LINE_WIDTH, 1.0),
+                        };
+                        self.board_context.fill_rect(
+                            cell_x * dest_cell_size + x,
+                            cell_y * dest_cell_size + y,
+                            cell_w * dest_cell_size,
+                            cell_h * dest_cell_size
+                        );
+                    }
+                    self.board_context.set_fill_style(&JsValue::from_str(""));
+                }
+                let mut new_map = [0; 40];
+                let mut j = 0;
+                for i in 0..40 {
+                    if !lock.cleared_lines.contains(&i) {
+                        new_map[j] = y_map[i as usize];
+                        j += 1;
+                    }
+                }
+                y_map = new_map;
+
+                if !has_pc && lock.placement_kind.is_hard() && lock.placement_kind.is_clear()
+                        || lock.perfect_clear {
+                    break
+                }
+            }
+        }
     }
     fn draw_hold(&self, resources: &Resources, game: &Game) {
         set_size_to_css_size(&self.hold_canvas);
