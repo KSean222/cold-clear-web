@@ -298,17 +298,18 @@ impl PlayerUi {
                 self.draw_piece(resources, piece, false);
             }
             PlayerState::LineClearDelay { piece, lines, time } => {
-                const OFFSET_FRAMES: u32 = 15;
+                const OFFSET_FRAMES: f64 = 15.0 / 35.0;
                 const INIT_WIDTH: f64 = 9.0;
                 const TOTAL_WIDTH: f64 = 10.0;
                 self.draw_piece(resources, *piece, false);
                 let dest_cell_size = self.board_canvas.height() as f64 / BOARD_HEIGHT;
                 let elapsed = self.time - *time;
-                let line_clear_delay = config.game.line_clear_delay.saturating_sub(OFFSET_FRAMES).max(1) as f64;
+                let offset_frames = OFFSET_FRAMES * config.game.line_clear_delay as f64;
+                let line_clear_delay = (config.game.line_clear_delay as f64 - offset_frames).max(1.0);
                 let rect_scale = (elapsed as f64 / line_clear_delay).min(1.0);
                 let rect_width = dest_cell_size * (INIT_WIDTH + rect_scale);
                 let rect_height = dest_cell_size * rect_scale;
-                let cells_scale = (elapsed.saturating_sub(OFFSET_FRAMES) as f64 / line_clear_delay).min(1.0);
+                let cells_scale = ((elapsed as f64 - offset_frames).max(0.0) / line_clear_delay).min(1.0);
                 let cells_width = dest_cell_size * (INIT_WIDTH + cells_scale);
                 let cells_height = dest_cell_size * cells_scale;
                 self.board_context.set_fill_style(&JsValue::from_str("white"));
