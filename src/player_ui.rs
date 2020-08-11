@@ -242,7 +242,6 @@ impl PlayerUi {
                     }
                     if locked.cleared_lines.is_empty() {
                         self.board.lock_piece(*piece);
-                        self.state = PlayerState::SpawnDelay;
                     } else {
                         self.state = PlayerState::LineClearDelay {
                             time: self.time,
@@ -260,10 +259,12 @@ impl PlayerUi {
                     }
                     self.board.advance_queue();
                 }
+                Event::SpawnDelayStart => {
+                    self.state = PlayerState::SpawnDelay;
+                }
                 Event::EndOfLineClearDelay => {
                     if let PlayerState::LineClearDelay { piece, .. } = self.state {
                         self.board.lock_piece(piece);
-                        self.state = PlayerState::SpawnDelay;
                     }
                 }
                 _ => {}
