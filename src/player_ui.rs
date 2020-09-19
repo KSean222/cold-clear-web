@@ -344,13 +344,13 @@ impl PlayerUi {
         if let Some(info) = &self.info {
             let dest_cell_size = self.board_canvas.height() as f64 / BOARD_HEIGHT;
 
-            let has_pc = info.plan.iter().any(|(_, lock)| lock.perfect_clear);
+            let has_pc = info.plan().iter().any(|(_, lock)| lock.perfect_clear);
 
             let mut y_map = [0; 40];
             for i in 0..y_map.len() {
                 y_map[i] = i as i32;
             }
-            for (placement, lock) in &info.plan {
+            for (placement, lock) in info.plan() {
                 for &(x, y, d) in &placement.cells_with_connections() {
                     let color = match placement.kind.0.color() {
                         CellColor::Z => "rgb(255, 32, 32)",
@@ -509,12 +509,24 @@ impl PlayerUi {
         ];
         if let Some(info) = &self.info {
             // Bot info
-            lines.extend_from_slice(&[
-                ("", "".to_owned()),
-                ("Depth", format!("{}", info.depth)),
-                ("Nodes", format!("{}", info.nodes)),
-                ("O. Rank", format!("{}", info.original_rank))
-            ]);
+            lines.push(("", "".to_owned()));
+            match info {
+                cold_clear::Info::Normal(info) => lines.extend_from_slice(&[
+                    ("Freestyle", "".to_owned()),
+                    ("Depth", format!("{}", info.depth)),
+                    ("Nodes", format!("{}", info.nodes)),
+                    ("O. Rank", format!("{}", info.original_rank))
+                ]),
+                cold_clear::Info::Book(info) => lines.extend_from_slice(&[
+                    // Never happening since books are like 100 MB but whatever
+                    ("Book", "".to_owned()),
+                    ("", info.name.clone())
+                ]),
+                cold_clear::Info::PcLoop(_) => lines.extend_from_slice(&[
+                    // Also never happening since running pc loop in the browser is browser abuse but whatever
+                    ("PC Loop", "".to_owned())
+                ])
+            }
         }
         let (names, values): (Vec<_>, Vec<_>) = lines
             .into_iter()

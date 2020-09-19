@@ -60,6 +60,7 @@ impl PlayerConfig {
                 );
             }
             (Box::new(BotInput::new(cold_clear::Interface::launch(
+                "./worker.js",
                 board,
                 self.bot_config.options,
                 self.bot_config.evaluator.clone(),
